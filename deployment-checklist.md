@@ -1,0 +1,9 @@
+-- Use a managed Postgres offering (Neon, Azure Database for PostgreSQL) with private networking
+- Use secure env secrets for Razorpay and AI keys (Azure Key Vault recommended)
+- Build Docker images for backend, push to registry
+- Use Azure App Service (Linux) or Container Apps for hosting backend
+- Configure health checks and autoscale rules
+- Use CDN/edge for frontend (Vercel or Azure Static Web Apps)
+- Configure logging (App Insights) and alerting
+-- Setup automated backups and retention for the Postgres DB
+- Run load tests and enable connection pooling

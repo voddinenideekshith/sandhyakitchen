@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Provide safe CI env variables
+        env:
+          ENV: development
+          APP_NAME: CI-Foodz
+          API_V1_PREFIX: /api/v1
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/testdb
+          JWT_SECRET_KEY: ci-secret
+          JWT_ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 60
+          LOG_LEVEL: INFO
+          ALLOWED_ORIGINS: '["http://localhost:3000"]'
+        run: |
+          echo "CI env populated"
+
+      - name: Startup verification
+        # ensure config loads and prints env
+        run: |
+          python -c "from core.config import settings; print('core:', settings.ENV)"
+          python -c "from app.core.config import settings as app_settings; print('app.core shim:', app_settings.ENV)"
+
+      - name: Run tests
+        run: |
+          cd backend
+          pytest -q
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/dev-requirements.txt
+
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=backend" >> $GITHUB_ENV
+
+      - name: Setup AI env vars
+        run: |
+          echo "AI_PROVIDER=openai" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY=test-key" >> $GITHUB_ENV
+
+      - name: Formatting checks (black)
+        run: black --check .
+
+      - name: Import sorting (isort)
+        run: isort --check-only .
+
+      - name: Lint (flake8)
+        run: flake8 .
+
+      - name: Run tests
+        run: pytest -q -ra
+        continue-on-error: false

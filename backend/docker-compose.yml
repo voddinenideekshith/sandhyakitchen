@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app:delegated
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - ENV=development
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request as u; r=u.urlopen('http://127.0.0.1:8000/ai/health'); sys.exit(0 if r.getcode()==200 else 1)"]
+    restart: unless-stopped
